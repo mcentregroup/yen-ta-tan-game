@@ -1,0 +1,6 @@
+level,type,title,options,answer,explanation,prefix,suffix,left_items,right_items,items,zones,active
+1,mcq,1 yến bằng bao nhiêu ki-lô-gam?,"[""1 kg"",""10 kg"",""100 kg"",""1 000 kg""]",1,1 yến = 10 kg.,,,,,,,true
+1,truefalse,Đúng hay sai: 1 tạ = 100 kg.,"[""Đúng"",""Sai""]",0,Khẳng định đúng vì 1 tạ = 100 kg.,,,,,,,true
+1,fill,Điền số thích hợp vào ô trống.,,"""30""",3 yến = 30 kg.,3 yến =,kg,,,,,true
+2,match,Nối mỗi khối lượng với giá trị bằng nó.,,"{""2 yến"":""20 kg"",""5 tạ"":""500 kg""}",Đổi từng đơn vị về ki-lô-gam.,,,"[""2 yến"",""5 tạ""]","[""20 kg"",""500 kg""]",,,true
+3,drag,Xếp các khối lượng vào đúng nhóm.,,"{""9 tạ"":""Nhẹ hơn"",""10 tạ"":""Bằng"",""12 tạ"":""Nặng hơn""}",So sánh mỗi khối lượng với 1 tấn.,,,,,"[""9 tạ"",""10 tạ"",""12 tạ""]","[""Nhẹ hơn"",""Bằng"",""Nặng hơn""]",true

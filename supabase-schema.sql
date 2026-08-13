@@ -18,6 +18,26 @@ create table if not exists public.admin_users (
 
 alter table public.admin_users enable row level security;
 
+create table if not exists public.questions (
+  id uuid primary key default gen_random_uuid(),
+  level smallint not null check (level between 1 and 3),
+  type text not null check (type in ('mcq', 'truefalse', 'fill', 'match', 'drag')),
+  title text not null check (char_length(title) between 3 and 500),
+  options jsonb,
+  answer jsonb not null,
+  explanation text not null default '',
+  prefix text,
+  suffix text,
+  left_items jsonb,
+  right_items jsonb,
+  items jsonb,
+  zones jsonb,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+alter table public.questions enable row level security;
+
 create or replace function public.is_game_admin()
 returns boolean
 language sql
@@ -32,6 +52,33 @@ $$;
 
 revoke all on function public.is_game_admin() from public;
 grant execute on function public.is_game_admin() to authenticated;
+
+drop policy if exists "Anyone can read active questions" on public.questions;
+drop policy if exists "Visitors can read active questions" on public.questions;
+create policy "Visitors can read active questions"
+  on public.questions for select to anon
+  using (active = true);
+
+drop policy if exists "Admins can read all questions" on public.questions;
+create policy "Admins can read all questions"
+  on public.questions for select to authenticated
+  using (active = true or public.is_game_admin());
+
+drop policy if exists "Admins can insert questions" on public.questions;
+create policy "Admins can insert questions"
+  on public.questions for insert to authenticated
+  with check (public.is_game_admin());
+
+drop policy if exists "Admins can update questions" on public.questions;
+create policy "Admins can update questions"
+  on public.questions for update to authenticated
+  using (public.is_game_admin())
+  with check (public.is_game_admin());
+
+drop policy if exists "Admins can delete questions" on public.questions;
+create policy "Admins can delete questions"
+  on public.questions for delete to authenticated
+  using (public.is_game_admin());
 
 drop policy if exists "Anyone can submit a result" on public.game_results;
 create policy "Anyone can submit a result"

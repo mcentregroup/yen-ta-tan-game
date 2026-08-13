@@ -1,4 +1,4 @@
-const QUESTIONS = [
+const FALLBACK_QUESTIONS = [
   { id: 1, level: 1, type: 'mcq', title: '1 yến bằng bao nhiêu ki-lô-gam?', options: ['1 kg', '10 kg', '100 kg', '1 000 kg'], answer: 1, explain: '1 yến = 10 kg.' },
   { id: 2, level: 1, type: 'truefalse', title: 'Đúng hay sai: 1 tạ = 100 kg.', options: ['Đúng', 'Sai'], answer: 0, explain: 'Khẳng định đúng vì 1 tạ = 100 kg.' },
   { id: 3, level: 1, type: 'fill', title: 'Điền số thích hợp vào ô trống.', prefix: '3 yến =', suffix: 'kg', answer: '30', explain: '3 yến = 3 × 10 = 30 kg.' },
@@ -23,6 +23,7 @@ const loginDialog = document.querySelector('#adminLoginDialog');
 const confirmDialog = document.querySelector('#confirmDialog');
 
 let soundOn = localStorage.getItem('yen-ta-tan-sound') !== 'off';
+let gameQuestions = FALLBACK_QUESTIONS;
 let state = { student: null, index: 0, score: 0, answers: [], checked: false, startedAt: null, response: null };
 let audioContext;
 
@@ -89,11 +90,14 @@ function renderWelcome() {
         <span class="art-badge one">1 yến = 10 kg</span><span class="art-badge two">1 tấn = 1 000 kg</span>
       </div>
     </section>`;
-  document.querySelector('#studentForm').addEventListener('submit', event => {
+  document.querySelector('#studentForm').addEventListener('submit', async event => {
     event.preventDefault();
     const name = document.querySelector('#studentName').value.trim();
     const className = document.querySelector('#studentClass').value.trim();
     if (!name || !className) return;
+    const startButton = event.submitter;
+    startButton.disabled = true; startButton.textContent = 'Đang chọn câu hỏi...';
+    gameQuestions = await loadRandomQuestions();
     state.student = { name, className };
     state.startedAt = Date.now();
     playSound('click');
@@ -102,7 +106,7 @@ function renderWelcome() {
 }
 
 function renderQuestion() {
-  const q = QUESTIONS[state.index];
+  const q = gameQuestions[state.index];
   state.checked = false;
   state.response = q.type === 'match' ? {} : q.type === 'drag' ? {} : null;
   const [stage, skill] = levelInfo(q.level);
@@ -219,7 +223,7 @@ function checkAnswer(q) {
   state.answers.push({ id: q.id, correct, response: JSON.parse(JSON.stringify(state.response)) });
   document.querySelector('#feedbackArea').innerHTML = `<div class="feedback ${correct ? 'correct' : 'incorrect'}"><strong>${correct ? 'Chính xác! +1 điểm' : 'Chưa chính xác.'}</strong> ${q.explain}</div>`;
   document.querySelector('.score-pill').textContent = `⭐ ${state.score} điểm`;
-  document.querySelector('#checkButton').textContent = state.index === QUESTIONS.length - 1 ? 'Xem kết quả →' : 'Câu tiếp theo →';
+  document.querySelector('#checkButton').textContent = state.index === gameQuestions.length - 1 ? 'Xem kết quả →' : 'Câu tiếp theo →';
   document.querySelectorAll('#answerArea button, #answerArea input').forEach(el => el.disabled = true);
   playSound(correct ? 'correct' : 'wrong');
   document.querySelector('.question-card').classList.add('pop');
@@ -232,13 +236,13 @@ function isCorrect(q) {
 }
 
 function nextQuestion() {
-  if (state.index < QUESTIONS.length - 1) { state.index++; renderQuestion(); }
+  if (state.index < gameQuestions.length - 1) { state.index++; renderQuestion(); }
   else finishGame();
 }
 
 async function finishGame() {
   const durationSeconds = Math.max(1, Math.round((Date.now() - state.startedAt) / 1000));
-  const result = { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, name: state.student.name, className: state.student.className, score: state.score, total: 10, durationSeconds, completedAt: new Date().toISOString(), levelScores: [1,2,3].map(level => QUESTIONS.filter(q => q.level === level).filter(q => state.answers.find(a => a.id === q.id)?.correct).length) };
+  const result = { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, name: state.student.name, className: state.student.className, score: state.score, total: 10, durationSeconds, completedAt: new Date().toISOString(), levelScores: [1,2,3].map(level => gameQuestions.filter(q => q.level === level).filter(q => state.answers.find(a => a.id === q.id)?.correct).length) };
   await saveResult(result);
   playSound('finish'); renderResult(result);
 }
@@ -246,12 +250,88 @@ async function finishGame() {
 function renderResult(result) {
   const rank = result.score === 10 ? ['Xuất sắc!', '🏆', 'Em đã làm đúng toàn bộ thử thách.'] : result.score >= 8 ? ['Rất tốt!', '🥇', 'Em đã nắm bài rất vững.'] : result.score >= 6 ? ['Hoàn thành tốt!', '⭐', 'Ôn lại một chút để tiến bộ hơn nhé.'] : ['Cố gắng thêm nhé!', '🌱', 'Hãy xem lại cách đổi các đơn vị rồi thử lại.'];
   app.innerHTML = `<section class="screen result-screen"><div class="result-burst">${rank[1]}</div><span class="eyebrow">Đã hoàn thành đường đua</span><h1>${rank[0]}</h1><div class="result-score"><strong>${result.score}</strong>/10 điểm</div><p class="result-message">${rank[2]} Kết quả của em đã được lưu.</p><div class="result-stats"><div class="stat-box"><strong>${result.levelScores[0]}/3</strong><span>Nhận biết</span></div><div class="stat-box"><strong>${result.levelScores[1]}/4</strong><span>Thông hiểu</span></div><div class="stat-box"><strong>${result.levelScores[2]}/3</strong><span>Vận dụng</span></div></div><div class="result-actions"><button class="primary-button" id="retryButton">Chơi lại ↻</button><button class="secondary-button" id="resultHomeButton">Về trang chủ</button></div></section>`;
-  document.querySelector('#retryButton').addEventListener('click', () => { const student = state.student; state = { student, index:0, score:0, answers:[], checked:false, startedAt:Date.now(), response:null }; playSound('click'); renderQuestion(); });
+  document.querySelector('#retryButton').addEventListener('click', async () => { const student = state.student; gameQuestions = await loadRandomQuestions(); state = { student, index:0, score:0, answers:[], checked:false, startedAt:Date.now(), response:null }; playSound('click'); renderQuestion(); });
   document.querySelector('#resultHomeButton').addEventListener('click', renderWelcome);
 }
 
 function getLocalResults() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch (_) { return []; }
+}
+
+function shuffle(items) {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [copy[i], copy[j]] = [copy[j], copy[i]]; }
+  return copy;
+}
+
+function selectBalancedQuestions(rows) {
+  const counts = { 1: 3, 2: 4, 3: 3 };
+  return [1, 2, 3].flatMap(level => shuffle(rows.filter(row => Number(row.level) === level)).slice(0, counts[level]));
+}
+
+function mapQuestion(row) {
+  const base = { id: row.id, level: Number(row.level), type: row.type, title: row.title, explain: row.explanation || '' };
+  if (row.type === 'mcq' || row.type === 'truefalse') return { ...base, options: row.options, answer: Number(row.answer) };
+  if (row.type === 'fill') return { ...base, prefix: row.prefix || '', suffix: row.suffix || '', answer: String(row.answer) };
+  if (row.type === 'match') return { ...base, left: row.left_items, right: row.right_items, pairs: row.answer };
+  return { ...base, items: row.items, zones: row.zones, answer: row.answer };
+}
+
+async function loadRandomQuestions() {
+  if (!supabaseEnabled) return selectBalancedQuestions(FALLBACK_QUESTIONS);
+  try {
+    const rows = await supabaseRequest('/rest/v1/questions?select=*&active=eq.true');
+    const selected = selectBalancedQuestions(rows);
+    if (selected.length !== 10) { toast('Ngân hàng câu hỏi chưa đủ 3/4/3. Đang dùng bộ câu hỏi mẫu.'); return selectBalancedQuestions(FALLBACK_QUESTIONS); }
+    return selected.map(mapQuestion);
+  } catch (error) { console.error(error); toast('Không tải được ngân hàng câu hỏi. Đang dùng bộ mẫu.'); return selectBalancedQuestions(FALLBACK_QUESTIONS); }
+}
+
+async function getQuestionCount() {
+  if (!supabaseEnabled) return FALLBACK_QUESTIONS.length;
+  try { const rows = await supabaseRequest('/rest/v1/questions?select=id&active=eq.true', {}, true); return rows.length; }
+  catch (_) { return 0; }
+}
+
+function parseCsv(text) {
+  const rows = []; let row = []; let cell = ''; let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (quoted && char === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+    else if (char === '"') quoted = !quoted;
+    else if (char === ',' && !quoted) { row.push(cell); cell = ''; }
+    else if ((char === '\n' || char === '\r') && !quoted) { if (char === '\r' && text[i + 1] === '\n') i++; row.push(cell); if (row.some(value => value.trim())) rows.push(row); row = []; cell = ''; }
+    else cell += char;
+  }
+  row.push(cell); if (row.some(value => value.trim())) rows.push(row);
+  if (rows.length < 2) throw new Error('Tệp CSV chưa có dữ liệu.');
+  const headers = rows.shift().map(value => value.replace(/^\uFEFF/, '').trim());
+  return rows.map((values, index) => ({ line: index + 2, data: Object.fromEntries(headers.map((header, i) => [header, (values[i] || '').trim()])) }));
+}
+
+function jsonCell(value, fallback = null) {
+  if (!value) return fallback;
+  try { return JSON.parse(value); } catch (_) { throw new Error(`JSON không hợp lệ: ${value.slice(0, 35)}`); }
+}
+
+function validateQuestionRow(entry) {
+  const r = entry.data; const level = Number(r.level); const type = r.type?.toLowerCase();
+  if (![1,2,3].includes(level)) throw new Error('level phải là 1, 2 hoặc 3');
+  if (!['mcq','truefalse','fill','match','drag'].includes(type)) throw new Error('type không hợp lệ');
+  if (!r.title || r.title.length < 3) throw new Error('title bị thiếu');
+  const question = { level, type, title:r.title, explanation:r.explanation || '', active:r.active.toLowerCase() !== 'false', options:jsonCell(r.options), answer:jsonCell(r.answer, r.answer), prefix:r.prefix || null, suffix:r.suffix || null, left_items:jsonCell(r.left_items), right_items:jsonCell(r.right_items), items:jsonCell(r.items), zones:jsonCell(r.zones) };
+  if ((type === 'mcq' || type === 'truefalse') && (!Array.isArray(question.options) || !Number.isInteger(Number(question.answer)) || Number(question.answer) >= question.options.length)) throw new Error('options/answer không hợp lệ');
+  if (type === 'match' && (!Array.isArray(question.left_items) || !Array.isArray(question.right_items) || typeof question.answer !== 'object')) throw new Error('left_items/right_items/answer không hợp lệ');
+  if (type === 'drag' && (!Array.isArray(question.items) || !Array.isArray(question.zones) || typeof question.answer !== 'object')) throw new Error('items/zones/answer không hợp lệ');
+  return question;
+}
+
+async function importQuestions(file) {
+  const entries = parseCsv(await file.text()); const valid = []; const errors = [];
+  entries.forEach(entry => { try { valid.push(validateQuestionRow(entry)); } catch (error) { errors.push(`Dòng ${entry.line}: ${error.message}`); } });
+  if (errors.length) throw new Error(`${errors.slice(0,5).join('\n')}${errors.length > 5 ? `\n... và ${errors.length - 5} lỗi khác` : ''}`);
+  for (let i = 0; i < valid.length; i += 50) await supabaseRequest('/rest/v1/questions', { method:'POST', headers:{ Prefer:'return=minimal' }, body:JSON.stringify(valid.slice(i, i + 50)) }, true);
+  return valid.length;
 }
 
 async function saveResult(result) {
@@ -300,14 +380,17 @@ function formatDate(iso) { return new Intl.DateTimeFormat('vi-VN', { dateStyle:'
 
 async function renderAdmin() {
   const results = (await getResults()).sort((a,b) => new Date(b.completedAt) - new Date(a.completedAt));
+  const questionCount = await getQuestionCount();
   const uniqueStudents = new Set(results.map(r => `${r.name}|${r.className}`)).size;
   const average = results.length ? (results.reduce((sum,r) => sum + r.score, 0) / results.length).toFixed(1) : '0.0';
   const excellent = results.length ? Math.round(results.filter(r => r.score >= 8).length / results.length * 100) : 0;
-  app.innerHTML = `<section class="screen admin-screen"><div class="admin-heading"><div><h1>Bảng kết quả học tập</h1><p>Theo dõi kết quả Bài 17: Yến, tạ, tấn</p></div><div class="admin-tools"><button class="secondary-button" id="exportButton">⇩ Xuất CSV</button><button class="secondary-button" id="logoutButton">Đăng xuất</button></div></div><div class="dashboard-stats"><div class="dashboard-stat"><strong>${results.length}</strong><span>Lượt hoàn thành</span></div><div class="dashboard-stat"><strong>${uniqueStudents}</strong><span>Học sinh</span></div><div class="dashboard-stat"><strong>${average}</strong><span>Điểm trung bình</span></div><div class="dashboard-stat"><strong>${excellent}%</strong><span>Đạt từ 8 điểm</span></div></div><div class="filters"><input id="searchResult" placeholder="Tìm theo tên học sinh..."><select id="classFilter"><option value="">Tất cả lớp</option>${[...new Set(results.map(r => r.className))].sort().map(c => `<option value="${escapeHtml(c)}">Lớp ${escapeHtml(c)}</option>`).join('')}</select><select id="scoreFilter"><option value="">Tất cả kết quả</option><option value="excellent">8 - 10 điểm</option><option value="good">5 - 7 điểm</option><option value="retry">0 - 4 điểm</option></select></div><div class="table-wrap" id="resultTable"></div><p class="admin-note">${supabaseEnabled ? 'Dữ liệu đang được đồng bộ tập trung qua Supabase.' : 'Chế độ local: dữ liệu chỉ được lưu trên trình duyệt này.'}</p></section>`;
+  app.innerHTML = `<section class="screen admin-screen"><div class="admin-heading"><div><h1>Bảng kết quả học tập</h1><p>Theo dõi kết quả Bài 17: Yến, tạ, tấn</p></div><div class="admin-tools"><a class="secondary-button download-link" href="questions-template.csv" download>Tải CSV mẫu</a><button class="secondary-button" id="importButton">Nhập câu hỏi CSV</button><input id="questionFile" type="file" accept=".csv,text/csv" hidden><button class="secondary-button" id="exportButton">⇩ Xuất kết quả</button><button class="secondary-button" id="logoutButton">Đăng xuất</button></div></div><div class="dashboard-stats"><div class="dashboard-stat"><strong>${results.length}</strong><span>Lượt hoàn thành</span></div><div class="dashboard-stat"><strong>${uniqueStudents}</strong><span>Học sinh</span></div><div class="dashboard-stat"><strong>${average}</strong><span>Điểm trung bình</span></div><div class="dashboard-stat"><strong>${questionCount}</strong><span>Câu hỏi đang hoạt động</span></div></div><div class="filters"><input id="searchResult" placeholder="Tìm theo tên học sinh..."><select id="classFilter"><option value="">Tất cả lớp</option>${[...new Set(results.map(r => r.className))].sort().map(c => `<option value="${escapeHtml(c)}">Lớp ${escapeHtml(c)}</option>`).join('')}</select><select id="scoreFilter"><option value="">Tất cả kết quả</option><option value="excellent">8 - 10 điểm</option><option value="good">5 - 7 điểm</option><option value="retry">0 - 4 điểm</option></select></div><div class="table-wrap" id="resultTable"></div><p class="admin-note">${supabaseEnabled ? 'Mỗi lượt chơi chọn ngẫu nhiên 3 câu mức 1, 4 câu mức 2 và 3 câu mức 3 từ Supabase.' : 'Chế độ local đang dùng bộ 10 câu mẫu.'}</p></section>`;
   const update = () => renderResultTable(results);
   document.querySelector('#searchResult').addEventListener('input', update); document.querySelector('#classFilter').addEventListener('change', update); document.querySelector('#scoreFilter').addEventListener('change', update);
   document.querySelector('#logoutButton').addEventListener('click', async () => { if (supabaseEnabled) await signOutAdmin(); sessionStorage.removeItem('yen-ta-tan-admin'); renderWelcome(); });
   document.querySelector('#exportButton').addEventListener('click', () => exportCsv(results));
+  document.querySelector('#importButton').addEventListener('click', () => { if (!supabaseEnabled) return toast('Cần cấu hình Supabase để nhập câu hỏi.'); document.querySelector('#questionFile').click(); });
+  document.querySelector('#questionFile').addEventListener('change', async event => { const file = event.target.files[0]; if (!file) return; const button=document.querySelector('#importButton'); button.disabled=true; button.textContent='Đang nhập...'; try { const count=await importQuestions(file); toast(`Đã nhập ${count} câu hỏi.`); await renderAdmin(); } catch(error) { alert(`Không thể nhập CSV:\n${error.message}`); button.disabled=false; button.textContent='Nhập câu hỏi CSV'; } });
   update();
 }
 

@@ -38,7 +38,42 @@ Tao repository GitHub va dua cac tep trong thu muc nay len repository. Khong can
 
 Sau deploy, hoc sinh co the mo URL `*.netlify.app`. Ket qua se duoc ghi vao bang `game_results`. Nut **Quan tri** dung email/mat khau admin Supabase.
 
-## 4. Gan ten mien rieng
+## 4. Nhap ngan hang 100 cau hoi bang CSV
+
+Sau khi cap nhat phien ban co ngan hang cau hoi:
+
+1. Chay lai toan bo [supabase-schema.sql](./supabase-schema.sql) trong Supabase SQL Editor. Script su dung `if not exists` va policy co the chay lai an toan.
+2. Dang nhap trang **Quan tri** cua tro choi.
+3. Chon **Tai CSV mau**.
+4. Mo tep bang Excel hoac Google Sheets, them toi 100 cau hoi, sau do luu o dinh dang **CSV UTF-8**.
+5. Chon **Nhap cau hoi CSV** va tai tep len.
+
+Moi luot choi se chon ngau nhien:
+
+- 3 cau muc 1
+- 4 cau muc 2
+- 3 cau muc 3
+
+Can co it nhat so cau tren o moi muc. Neu ngan hang chua du, tro choi tu dong dung bo 10 cau mau.
+
+### Cac cot CSV
+
+| Cot | Noi dung |
+| --- | --- |
+| `level` | `1`, `2` hoac `3` |
+| `type` | `mcq`, `truefalse`, `fill`, `match` hoac `drag` |
+| `title` | Noi dung cau hoi |
+| `options` | Mang JSON cho `mcq`/`truefalse`, vi du `["A","B","C","D"]` |
+| `answer` | Chi so dap an bat dau tu `0`, chuoi dien khuyet, hoac object JSON cho noi/keo tha |
+| `explanation` | Loi giai hien sau khi cham |
+| `prefix`, `suffix` | Van ban truoc/sau o trong cua cau `fill` |
+| `left_items`, `right_items` | Hai mang JSON cua cau `match` |
+| `items`, `zones` | Mang the va mang nhom cua cau `drag` |
+| `active` | `true` hoac `false` |
+
+Khong can MCP rieng cho quy trinh nay: Supabase REST API da dong vai tro ket noi truc tiep giua trang admin va database.
+
+## 5. Gan ten mien rieng
 
 Trong Netlify, mo **Domain management > Add a domain**:
 
