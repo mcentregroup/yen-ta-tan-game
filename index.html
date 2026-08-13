@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Trò chơi học tập Bài 17: Yến, tạ, tấn">
+  <title>Đường đua Cân Nặng - Bài 17: Yến, tạ, tấn</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <button class="brand" id="homeButton" type="button" aria-label="Về trang chủ">
+        <span class="brand-mark" aria-hidden="true">⚖</span>
+        <span><strong>Đường đua Cân Nặng</strong><small>Bài 17: Yến, tạ, tấn</small></span>
+      </button>
+      <div class="top-actions">
+        <button class="icon-button" id="soundButton" type="button" aria-label="Tắt âm thanh" title="Bật/tắt âm thanh">🔊</button>
+        <button class="admin-link" id="adminButton" type="button">Quản trị</button>
+      </div>
+    </header>
+
+    <main id="app" tabindex="-1"></main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <dialog id="adminLoginDialog" class="modal">
+    <form method="dialog" id="adminLoginForm">
+      <button class="modal-close" value="cancel" type="submit" aria-label="Đóng">×</button>
+      <div class="modal-icon" aria-hidden="true">🔐</div>
+      <h2>Đăng nhập quản trị</h2>
+      <p>Xem và quản lý kết quả học tập.</p>
+      <label>Email quản trị<input id="adminUsername" type="email" autocomplete="username" placeholder="teacher@example.com" required></label>
+      <label>Mật khẩu<input id="adminPassword" type="password" autocomplete="current-password" required></label>
+      <p class="form-error" id="loginError" aria-live="polite"></p>
+      <button class="primary-button full" value="default" type="submit">Đăng nhập</button>
+    </form>
+  </dialog>
+
+  <dialog id="confirmDialog" class="modal small-modal">
+    <form method="dialog">
+      <div class="modal-icon danger" aria-hidden="true">!</div>
+      <h2 id="confirmTitle">Xác nhận</h2>
+      <p id="confirmMessage"></p>
+      <div class="dialog-actions">
+        <button class="secondary-button" value="cancel">Hủy</button>
+        <button class="danger-button" id="confirmAction" value="confirm">Xóa</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="runtime-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

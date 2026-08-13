@@ -1,0 +1,16 @@
+# Generated Netlify output
+dist/
+
+# Local environment and editor files
+.env
+.env.*
+!.env.example
+.netlify/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Dependency folders and logs
+node_modules/
+npm-debug.log*
